@@ -32,6 +32,7 @@ Get-Process | Where-Object { $_.ProcessName -match "TeamViewer|AnyDesk|LogMeIn|V
 4️⃣ Go to Triggers → Click New:
 
     Choose "At startup" (or another schedule).
+    
 
 5️⃣ Go to Actions → Click New:
 
@@ -40,5 +41,7 @@ Get-Process | Where-Object { $_.ProcessName -match "TeamViewer|AnyDesk|LogMeIn|V
         wscript.exe
     Arguments: 
         "C:\path\to\script.vbs"
-        
+6️⃣ Click OK, save the task, and test it manually:
+
+    Right-click the task → Click Run.
 
