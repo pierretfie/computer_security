@@ -1,0 +1,45 @@
+#check running rdp services
+Get-Service -Name TermService
+
+
+#check is rdp is enabled
+(Get-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections").fDenyTSConnections
+
+Expected Output:
+
+    0 = RDP is enabled
+    1 = RDP is disabled
+
+    #get 3rd party services
+Get-Process | Where-Object { $_.ProcessName -match "TeamViewer|AnyDesk|LogMeIn|VNC|ChromeRemoteDesktop" }
+
+#setting up script to run after every 5mins
+📌 Steps to Manually Create the Scheduled Task
+
+1️⃣ Open Task Scheduler (taskschd.msc)
+2️⃣ Click "Create Task..." (instead of "Create Basic Task")
+3️⃣ General Tab:
+
+    Name: Monitor Remote Access
+    Check "Run with highest privileges"
+    Choose "Run only when user is logged in" (to make it visible)
+
+4️⃣ Triggers Tab:
+
+    Click New → Begin the task: "At startup"
+    Check "Delay task for: 30 seconds" (to avoid startup conflicts)
+    Click OK
+
+5️⃣ Actions Tab:
+
+    Click New → "Start a Program"
+    In Program/Script, enter:
+
+    powershell.exe
+
+In Add arguments (optional), enter:
+
+    -ExecutionPolicy Bypass -File "C:\path\to\monitor_remote_connections.ps1"
+
+    Click OK
+
