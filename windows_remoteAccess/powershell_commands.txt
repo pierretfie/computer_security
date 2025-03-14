@@ -32,7 +32,7 @@ Get-Process | Where-Object { $_.ProcessName -match "TeamViewer|AnyDesk|LogMeIn|V
 4️⃣ Go to Triggers → Click New:
 
     Choose "At startup" (or another schedule).
-    
+    add repeat task after t minutes
 
 5️⃣ Go to Actions → Click New:
 
