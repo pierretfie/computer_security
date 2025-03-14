@@ -1,0 +1,23 @@
+# Gmail SMTP Credentials
+$fromEmail = "morganrandy516@gmail.com"  # Replace with your Gmail
+$toEmail = "sscarletssnow@gmail.com"  # Replace with recipient email
+$smtpServer = "smtp.gmail.com"
+$smtpPort = 587
+$smtpUser = "morganrandy516@gmail.com"
+$smtpPassword = "mbkh qywe arff lipa"  # Replace with the 16-character App Password
+
+# Email Message
+$emailParams = @{
+    From       = $fromEmail
+    To         = $toEmail
+    Subject    = "🚨 Test Email from PowerShell"
+    Body       = "This is a test email sent via Gmail SMTP using PowerShell."
+    SmtpServer = $smtpServer
+    Port       = $smtpPort
+    Credential = New-Object System.Management.Automation.PSCredential ($smtpUser, (ConvertTo-SecureString $smtpPassword -AsPlainText -Force))
+    UseSsl     = $true
+}
+
+# Send Email
+Send-MailMessage @emailParams
+Write-Host "✅ Email Sent Successfully!"
