@@ -14,6 +14,31 @@ Expected Output:
 Get-Process | Where-Object { $_.ProcessName -match "TeamViewer|AnyDesk|LogMeIn|VNC|ChromeRemoteDesktop" }
 
 #setting up script to run after every 5mins
-1. create a vbs script
+1. create a vbs script(file.vbs)
+
     Set objShell = CreateObject("WScript.Shell")
-objShell.Run "powershell.exe -ExecutionPolicy Bypass -File ""C:\Users\eclipse\Desktop\rdpcheck.ps1""", 0, False
+    objShell.Run "powershell.exe -ExecutionPolicy Bypass -File ""C:\path\to\script.ps1""", 0, False
+
+1️⃣ Open Task Scheduler (taskschd.msc).
+
+2️⃣ Click Create Task (not "Basic Task").
+
+3️⃣ Under General, configure:
+
+    Name: Hidden RDP Check
+    Security options: "Run whether user is logged in or not"
+    ✅ Check "Run with highest privileges" (if needed).
+
+4️⃣ Go to Triggers → Click New:
+
+    Choose "At startup" (or another schedule).
+
+5️⃣ Go to Actions → Click New:
+
+    Action: "Start a program"
+    Program/script:
+        wscript.exe
+    Arguments: 
+        "C:\path\to\script.vbs"
+        
+
