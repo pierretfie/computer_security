@@ -26,12 +26,12 @@ while ($true) {
     # Check Event Logs for Recent Remote Logins
     $recentLogins = Get-WinEvent -LogName Security | Where-Object { $_.Id -in @(4624, 1149) } | Select-Object -First 5
 
-    # If any remote access tool is running and has an active session, send an alert
-    if ($activeRemoteTools -or $activeConnections -or $activeRdpSessions -or $recentLogins) {
+    # If RDP or any remote access tool is running, send an alert
+    if ($activeRemoteTools -or $activeRdpSessions) {
         $body = "Remote Access Alert! `n`n"
 
         if ($activeRemoteTools) { 
-            $body += "Running Remote Access Tools: `n" + ($activeRemoteTools.ProcessName -join "`n") + "`n`n"
+            $body += "Running Remote Access Tools: `n" + ($activeRemoteTools | Format-Table -Property ProcessName, StartTime, Id -AutoSize | Out-String) + "`n`n"
         }
 
         if ($activeConnections) { 
@@ -43,7 +43,7 @@ while ($true) {
         }
 
         if ($recentLogins) { 
-            $body += "Recent Remote Logins Detected: `n" + ($recentLogins | Format-Table -AutoSize | Out-String) + "`n`n"
+            $body += "Recent Remote Logins Detected: `n" + ($recentLogins | Format-Table -Property TimeCreated, Id, Message -AutoSize | Out-String) + "`n`n"
         }
 
         # Email Parameters
@@ -58,9 +58,16 @@ while ($true) {
             UseSsl     = $true
         }
 
-        # Send Email
-        Send-MailMessage @emailParams -ErrorAction SilentlyContinue
-        Write-Host "Remote access detected! Email alert sent."
+        # Check if enough time has passed since the last alert
+        $currentTime = Get-Date
+        if (-not $lastAlertTime -or ($currentTime - $lastAlertTime).TotalMinutes -ge 10) {
+            # Send Email
+            Send-MailMessage @emailParams -ErrorAction SilentlyContinue
+            Write-Host "Remote access detected! Email alert sent."
+            $lastAlertTime = $currentTime
+        } else {
+            Write-Host "Remote access detected, but alert throttled. Last alert sent at: $lastAlertTime"
+        }
     } else {
         Write-Host "No active remote sessions detected."
     }

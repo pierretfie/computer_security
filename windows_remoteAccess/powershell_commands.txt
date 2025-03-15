@@ -33,6 +33,7 @@ Get-Process | Where-Object { $_.ProcessName -match "TeamViewer|AnyDesk|LogMeIn|V
 
     Choose "At startup" (or another schedule).
     add repeat task after t minutes
+    the XML file has the program settings
 
 5️⃣ Go to Actions → Click New:
 
