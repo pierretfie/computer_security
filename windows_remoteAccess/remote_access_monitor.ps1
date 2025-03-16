@@ -25,22 +25,38 @@ while ($true) {
 
     # Check Event Logs for Recent Remote Access Activity
     $recentEvents = @(
-        # Check RDP Connection and Authentication Events
+        # Check RDP Connection and Authentication Events with user details
         Get-WinEvent -FilterHashtable @{
             LogName="Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational"
+            ID=1149  # Authentication Success
             StartTime=(Get-Date).AddMinutes(-10)
-        } -ErrorAction SilentlyContinue |
-        Where-Object { $_.Id -in @(1149, 261) } # 1149 = Authentication Success, 261 = New Connection
+        } -ErrorAction SilentlyContinue | 
+        Select-Object TimeCreated,
+            @{Name='Event';Expression={'RDP Authentication Success'}},
+            @{Name='Username';Expression={$_.Properties[0].Value}},
+            @{Name='SourceIP';Expression={$_.Properties[2].Value}}
 
-        # Check RDP Session Events
+        # Check RDP Session Events with user details
         Get-WinEvent -FilterHashtable @{
             LogName="Microsoft-Windows-TerminalServices-LocalSessionManager/Operational"
+            ID=@(21,23,24,25)  # Session events
             StartTime=(Get-Date).AddMinutes(-10)
-        } -ErrorAction SilentlyContinue
+        } -ErrorAction SilentlyContinue |
+        Select-Object TimeCreated,
+            @{Name='Event';Expression={
+                switch ($_.ID) {
+                    21 {'RDP Session Logon'}
+                    23 {'RDP Session Logoff'}
+                    24 {'RDP Session Disconnected'}
+                    25 {'RDP Session Reconnected'}
+                }
+            }},
+            @{Name='Username';Expression={$_.Properties[0].Value}},
+            @{Name='SourceIP';Expression={$_.Properties[2].Value}}
     )
 
     # If RDP or any remote access tool is running, send an alert
-    if ($activeRemoteTools -or $activeRdpSessions) {
+    if ($activeRemoteTools -or $activeRdpSessions -or $recentEvents) {
         $body = "Remote Access Alert! `n`n"
 
         if ($activeRemoteTools) { 
@@ -58,20 +74,7 @@ while ($true) {
         if ($recentEvents) {
             $body += "Recent Remote Access Activity: `n"
             $body += ($recentEvents | 
-                Select-Object TimeCreated, Id,
-                @{Name='Event';Expression={
-                    switch ($_.Id) {
-                        1149 {'RDP Authentication Success'}
-                        261 {'RDP Connection Attempt'}
-                        21 {'RDP Session Logon'}
-                        23 {'RDP Session Logoff'}
-                        24 {'RDP Session Disconnected'}
-                        25 {'RDP Session Reconnected'}
-                        default {"Event ID: $($_.Id)"}
-                    }
-                }},
-                Message |
-                Format-Table -AutoSize |
+                Format-Table TimeCreated, Event, Username, SourceIP -AutoSize |
                 Out-String)
         }
 
