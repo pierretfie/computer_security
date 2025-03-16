@@ -23,8 +23,21 @@ while ($true) {
     # Check for Active RDP Sessions
     $activeRdpSessions = query session | Select-String "rdp-tcp"
 
-    # Check Event Logs for Recent Remote Logins
-    $recentLogins = Get-WinEvent -LogName Security | Where-Object { $_.Id -in @(4624, 1149) } | Select-Object -First 5
+    # Check Event Logs for Recent Remote Access Activity
+    $recentEvents = @(
+        # Check RDP Connection and Authentication Events
+        Get-WinEvent -FilterHashtable @{
+            LogName="Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational"
+            StartTime=(Get-Date).AddMinutes(-10)
+        } -ErrorAction SilentlyContinue |
+        Where-Object { $_.Id -in @(1149, 261) } # 1149 = Authentication Success, 261 = New Connection
+
+        # Check RDP Session Events
+        Get-WinEvent -FilterHashtable @{
+            LogName="Microsoft-Windows-TerminalServices-LocalSessionManager/Operational"
+            StartTime=(Get-Date).AddMinutes(-10)
+        } -ErrorAction SilentlyContinue
+    )
 
     # If RDP or any remote access tool is running, send an alert
     if ($activeRemoteTools -or $activeRdpSessions) {
@@ -42,8 +55,24 @@ while ($true) {
             $body += "Active RDP Sessions Found! `n"
         }
 
-        if ($recentLogins) { 
-            $body += "Recent Remote Logins Detected: `n" + ($recentLogins | Format-Table -Property TimeCreated, Id, Message -AutoSize | Out-String) + "`n`n"
+        if ($recentEvents) {
+            $body += "Recent Remote Access Activity: `n"
+            $body += ($recentEvents | 
+                Select-Object TimeCreated, Id,
+                @{Name='Event';Expression={
+                    switch ($_.Id) {
+                        1149 {'RDP Authentication Success'}
+                        261 {'RDP Connection Attempt'}
+                        21 {'RDP Session Logon'}
+                        23 {'RDP Session Logoff'}
+                        24 {'RDP Session Disconnected'}
+                        25 {'RDP Session Reconnected'}
+                        default {"Event ID: $($_.Id)"}
+                    }
+                }},
+                Message |
+                Format-Table -AutoSize |
+                Out-String)
         }
 
         # Email Parameters
