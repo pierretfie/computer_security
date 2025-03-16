@@ -9,10 +9,14 @@ $smtpPort = 587
 $smtpUser = "your-email@gmail.com"  # Replace with your email
 $smtpPassword = "your-app-password"  # Use Gmail App Password (Not your normal password!)
 
+# Initialize last alert time
+$lastAlertTime = $null
 
 # Infinite Loop - Runs every 5 minutes
 while ($true) {
     Write-Host "Checking for active remote access connections..."
+    $remoteAccessDetected = $false
+    $body = "Remote Access Alert! `n`n"
 
     # Monitor Active Processes
     $activeRemoteTools = Get-Process | Where-Object { $_.ProcessName -in $monitoredApps }
@@ -25,7 +29,7 @@ while ($true) {
 
     # Check Event Logs for Recent Remote Access Activity
     $recentEvents = @(
-        # Check RDP Connection and Authentication Events with user details
+        # Check RDP Authentication Events with user details
         Get-WinEvent -FilterHashtable @{
             LogName="Microsoft-Windows-TerminalServices-RemoteConnectionManager/Operational"
             ID=1149  # Authentication Success
@@ -35,67 +39,57 @@ while ($true) {
             @{Name='Event';Expression={'RDP Authentication Success'}},
             @{Name='Username';Expression={$_.Properties[0].Value}},
             @{Name='SourceIP';Expression={$_.Properties[2].Value}}
-
-        # Check RDP Session Events with user details
-        Get-WinEvent -FilterHashtable @{
-            LogName="Microsoft-Windows-TerminalServices-LocalSessionManager/Operational"
-            ID=@(21,23,24,25)  # Session events
-            StartTime=(Get-Date).AddMinutes(-10)
-        } -ErrorAction SilentlyContinue |
-        Select-Object TimeCreated,
-            @{Name='Event';Expression={
-                switch ($_.ID) {
-                    21 {'RDP Session Logon'}
-                    23 {'RDP Session Logoff'}
-                    24 {'RDP Session Disconnected'}
-                    25 {'RDP Session Reconnected'}
-                }
-            }},
-            @{Name='Username';Expression={$_.Properties[0].Value}},
-            @{Name='SourceIP';Expression={$_.Properties[2].Value}}
     )
 
-    # If RDP or any remote access tool is running, send an alert
-    if ($activeRemoteTools -or $activeRdpSessions -or $recentEvents) {
-        $body = "Remote Access Alert! `n`n"
+    # Build a single consolidated alert
+    if ($recentEvents) {
+        $remoteAccessDetected = $true
+        $body += "RDP Authentication Details: `n"
+        $body += ($recentEvents | 
+            Format-Table TimeCreated, Username, SourceIP -AutoSize |
+            Out-String)
+        $body += "`n"
+    }
 
-        if ($activeRemoteTools) { 
-            $body += "Running Remote Access Tools: `n" + ($activeRemoteTools | Format-Table -Property ProcessName, StartTime, Id -AutoSize | Out-String) + "`n`n"
-        }
+    if ($activeRemoteTools) { 
+        $remoteAccessDetected = $true
+        $body += "Running Remote Access Tools: `n" 
+        $body += ($activeRemoteTools | Format-Table -Property ProcessName, StartTime, Id -AutoSize | Out-String) 
+        $body += "`n"
+    }
 
-        if ($activeConnections) { 
-            $body += "Active Remote Sessions Detected: `n" + ($activeConnections | Format-Table -AutoSize | Out-String) + "`n`n"
-        }
+    if ($activeConnections) { 
+        $remoteAccessDetected = $true
+        $body += "Active Remote Sessions Detected: `n" 
+        $body += ($activeConnections | Format-Table -AutoSize | Out-String)
+        $body += "`n"
+    }
 
-        if ($activeRdpSessions) { 
-            $body += "Active RDP Sessions Found! `n"
-        }
+    if ($activeRdpSessions) { 
+        $remoteAccessDetected = $true
+        $body += "Active RDP Sessions Found! `n`n"
+    }
 
-        if ($recentEvents) {
-            $body += "Recent Remote Access Activity: `n"
-            $body += ($recentEvents | 
-                Format-Table TimeCreated, Event, Username, SourceIP -AutoSize |
-                Out-String)
-        }
-
-        # Email Parameters
-        $emailParams = @{
-            From       = $fromEmail
-            To         = $toEmail
-            Subject    = "Remote Access Alert!"
-            Body       = $body
-            SmtpServer = $smtpServer
-            Port       = $smtpPort
-            Credential = New-Object System.Management.Automation.PSCredential ($smtpUser, (ConvertTo-SecureString $smtpPassword -AsPlainText -Force))
-            UseSsl     = $true
-        }
-
+    # Send a single consolidated email if any remote access is detected
+    if ($remoteAccessDetected) {
         # Check if enough time has passed since the last alert
         $currentTime = Get-Date
         if (-not $lastAlertTime -or ($currentTime - $lastAlertTime).TotalMinutes -ge 10) {
+            # Email Parameters
+            $emailParams = @{
+                From       = $fromEmail
+                To         = $toEmail
+                Subject    = "Remote Access Alert!"
+                Body       = $body
+                SmtpServer = $smtpServer
+                Port       = $smtpPort
+                Credential = New-Object System.Management.Automation.PSCredential ($smtpUser, (ConvertTo-SecureString $smtpPassword -AsPlainText -Force))
+                UseSsl     = $true
+            }
+
             # Send Email
             Send-MailMessage @emailParams -ErrorAction SilentlyContinue
-            Write-Host "Remote access detected! Email alert sent."
+            Write-Host "Remote access detected! Consolidated email alert sent."
             $lastAlertTime = $currentTime
         } else {
             Write-Host "Remote access detected, but alert throttled. Last alert sent at: $lastAlertTime"
