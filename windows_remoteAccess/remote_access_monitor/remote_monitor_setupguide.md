@@ -79,7 +79,7 @@ objShell.Run "powershell.exe -ExecutionPolicy Bypass -NoProfile -WindowStyle Hid
 5. **Actions Tab**
    - Action: Start a program
    - Program/script: `wscript.exe`
-   - Arguments: `"C:\Users\[username]\Desktop\rdpchecker.vbs"`
+   - Arguments: `"C:\Users\[username]\Desktop\remote_access_monitor.vbs"`
 
 6. **Settings Tab**
    - ✅ Allow task to be run on demand
