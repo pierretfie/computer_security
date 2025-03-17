@@ -3,7 +3,7 @@
 # Remote Access Monitor
 
 A PowerShell script that monitors and alerts administrators about remote access activities on Windows systems, including RDP connections and various remote access tools.
-
+files under remote_access_monitor folder
 ## Features
 
 - Monitors multiple remote access tools:
