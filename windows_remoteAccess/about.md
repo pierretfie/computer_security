@@ -2,5 +2,7 @@ Remote access services are a great vulnerability to computers and machines. Hack
 
 prevention:
 
-ensure the right people are allowed to access your machine
-disable such services 
+ensure the right people are allowed to access your machine and block unauthorized accessess
+disable such services due to security risks
+monitor these services
+keep your computer and windows defender updated
