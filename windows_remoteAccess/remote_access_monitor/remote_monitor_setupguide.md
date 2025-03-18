@@ -46,7 +46,7 @@ objShell.Run "powershell.exe -ExecutionPolicy Bypass -NoProfile -WindowStyle Hid
 
 ### Step 2: Configure Task Scheduler
 
-1. **Open Task Scheduler**
+1. **Open Task Scheduler by clicking windowsKEY + R**
    - Run `taskschd.msc`
    - Or search "Task Scheduler" in Start menu
 
