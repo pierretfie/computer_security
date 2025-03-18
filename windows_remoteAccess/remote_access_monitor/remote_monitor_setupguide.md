@@ -64,12 +64,10 @@ objShell.Run "powershell.exe -ExecutionPolicy Bypass -NoProfile -WindowStyle Hid
 4. **Triggers Tab**
    Add two triggers:
    
-   A. Logon Trigger:
-   - On logon
-   - Repetition:
-     - ✅ Repeat task every: 5 minutes
-     - ✅ For a duration of: 1 day
-     - ✅ Enabled
+   A. startup Trigger:
+   - On startup
+   - ✅ enabled
+  
    
    B. Daily Trigger:
    - One time per day
