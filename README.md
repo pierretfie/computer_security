@@ -99,11 +99,3 @@ If no alerts are received:
 2. Verify SMTP server access
 3. Check Windows Event Log access
 4. Run script with administrator privileges
-
-## License
-
-[Specify your license here]
-
-## Author
-
-[maina350p]
